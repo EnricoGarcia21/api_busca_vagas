@@ -1,0 +1,24 @@
+{
+  "name": "busca_vaga",
+  "version": "1.0.0",
+  "description": "api para buscar vagas de TI",
+  "license": "ISC",
+  "author": "Enrico Garcia",
+  "type": "commonjs",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js"
+  },
+  "dependencies": {
+    "axios": "^1.16.1",
+    "cheerio": "^1.2.0",
+    "express": "^5.2.1",
+    "puppeteer": "^25.1.0"
+  },
+  "devDependencies": {
+    "dotenv": "^17.4.2",
+    "nodemon": "^3.1.14"
+  }
+}

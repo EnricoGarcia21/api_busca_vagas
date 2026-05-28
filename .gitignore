@@ -1,0 +1,9 @@
+# Dependências (Pasta extremamente pesada que o npm recria sozinho)
+node_modules/
+
+# Arquivos de configuração local e chaves secretas (Segurança!)
+.env
+
+# Arquivos do sistema operacional
+.DS_Store
+Thumbs.db
