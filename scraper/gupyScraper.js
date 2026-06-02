@@ -1,4 +1,3 @@
-// src/scrapers/vagasScraper.js
 const puppeteer = require('puppeteer');
 
 async function rodarRoboDeBusca() {
@@ -59,4 +58,7 @@ async function rodarRoboDeBusca() {
   }
 }
 
-module.exports = { rodarRoboDeBusca };
+
+module.exports = { 
+    buscarVagas: rodarRoboDeBusca 
+};
