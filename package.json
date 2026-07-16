@@ -7,17 +7,23 @@
   "type": "commonjs",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node src/app.js",
-    "dev": "nodemon src/app.js"
+    "test": "node test-api.js",
+    "start": "node app.js",
+    "server": "nodemon app.js",
+    "client": "npm run dev --prefix frontend",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "build": "npm run build --prefix frontend"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "axios": "^1.16.1",
     "cheerio": "^1.2.0",
     "express": "^5.2.1",
+    "pdf-parse": "^2.4.5",
     "puppeteer": "^25.1.0"
   },
   "devDependencies": {
+    "concurrently": "^10.0.3",
     "dotenv": "^17.4.2",
     "nodemon": "^3.1.14"
   }
