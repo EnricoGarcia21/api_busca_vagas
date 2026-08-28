@@ -44,9 +44,11 @@ api_busca_vagas/
 ├── controller/               # Lógica de controle de rotas do Express
 │   ├── agentController.js    # Controlador do Agente de IA (Gemini / PDF)
 │   └── vagasController.js    # (Opcional) Controlador antigo
-├── scraper/                  # Scripts de Web Scraping com Puppeteer
-│   ├── gupyScraper.js        # Scraper paginado da Catho
-│   └── linkedinScraper.js    # Scraper dinâmico do LinkedIn
+├── scraper/                  # Scripts de Web Scraping e APIs
+│   ├── browserHelper.js      # Utilitário de inicialização com flags anti-detecção
+│   ├── cathoScraper.js       # Scraper paginado da Catho com Puppeteer
+│   ├── gupyScraper.js        # Integração de alta velocidade da API da Gupy
+│   └── linkedinScraper.js    # Scraper HTTP otimizado do LinkedIn (Cheerio)
 ├── public/                   # Pasta estática (Vite compila o frontend aqui)
 ├── frontend/                 # Código-fonte da aplicação React + Vite
 │   ├── src/

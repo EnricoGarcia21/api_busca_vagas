@@ -1,93 +1,61 @@
-const puppeteer = require('puppeteer');
+const axios = require('axios');
+const cheerio = require('cheerio');
 
 async function buscarVagas(keyword = 'desenvolvedor', location = 'Brasil') {
-    
-    const url = `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(keyword)}&location=${encodeURIComponent(location)}`;
-    
-    console.log(`🌐 Scraper LinkedIn acessando: ${url}`);
+  try {
+    const url = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodeURIComponent(keyword)}&location=${encodeURIComponent(location)}&start=0`;
+    console.log(`🌐 Scraper LinkedIn (HTTP leve) acessando: ${url}`);
 
-    const browser = await puppeteer.launch({ 
-        headless: true,
-        args: ['--start-maximized', '--no-sandbox'] 
+    const { data: html } = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+      },
+      timeout: 10000
     });
-    
-    const page = await browser.newPage();
-    
-  
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
-    try {
-        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-        await page.waitForSelector('.jobs-search__results-list li', { timeout: 10000 });
-       
-        console.log("⏳ Rolando página do LinkedIn para carregar mais vagas...");
-        
-        // Loop de rolagem para carregar mais itens via lazy loading e tentar clicar no botão "ver mais"
-        await page.evaluate(async () => {
-            const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-            for (let i = 0; i < 4; i++) {
-                // Rola a janela
-                window.scrollTo(0, document.body.scrollHeight);
-                // Rola o container específico se existir
-                const resultsList = document.querySelector('.jobs-search__results-list');
-                if (resultsList) {
-                    resultsList.scrollTo(0, resultsList.scrollHeight);
-                }
-                await delay(1200);
+    const $ = cheerio.load(html);
+    const vagas = [];
 
-                // Tenta clicar no botão "Ver mais vagas" (infinite scroll button no LinkedIn público)
-                const seeMoreBtn = document.querySelector('button.infinite-scroller__show-more-button');
-                if (seeMoreBtn && !seeMoreBtn.disabled) {
-                    console.log("Clicando em 'Ver mais vagas'...");
-                    seeMoreBtn.click();
-                    await delay(1500);
-                }
-            }
+    $('li').each((_, el) => {
+      const tituloElement = $(el).find('h3.base-search-card__title, .base-search-card__title, h3');
+      const empresaElement = $(el).find('h4.base-search-card__subtitle a, .base-search-card__subtitle, h4');
+      const localElement = $(el).find('.job-search-card__location');
+      const linkElement = $(el).find('a.base-card__full-link, a');
+      const dataElement = $(el).find('time.job-search-card__listdate, time');
+
+      const rawTitulo = tituloElement.text() || '';
+      const rawEmpresa = empresaElement.text() || '';
+      const rawLocal = localElement.text() || '';
+
+      const titulo = rawTitulo.replace(/\s+/g, ' ').trim();
+      const empresa = rawEmpresa.replace(/\s+/g, ' ').trim();
+      const localizacao = rawLocal.replace(/\s+/g, ' ').trim();
+      const link = linkElement.attr('href');
+
+      if (titulo && !titulo.includes('{[') && link) {
+        vagas.push({
+          titulo,
+          empresa: empresa || 'Não informada',
+          localizacao: localizacao || location,
+          link: link.split('?')[0],
+          descricao: dataElement.text().trim() 
+            ? `Publicada no LinkedIn: ${dataElement.text().replace(/\s+/g, ' ').trim()}` 
+            : 'Vaga coletada via painel público do LinkedIn.',
+          salario: 'A combinar',
+          plataforma: 'LinkedIn'
         });
+      }
+    });
 
-        // Espera pequena para renderização dos novos elementos
-        await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log(`✅ Coletadas ${vagas.length} vagas do LinkedIn.`);
+    return vagas;
 
-        const vagas = await page.evaluate(() => {
-            const itens = document.querySelectorAll('.jobs-search__results-list li');
-            const lista = [];
-
-            itens.forEach(el => {
-                const tituloElement = el.querySelector('.base-search-card__title');
-                const empresaElement = el.querySelector('.base-search-card__subtitle a') || el.querySelector('.base-search-card__subtitle');
-                const localElement = el.querySelector('.job-search-card__location');
-                const linkElement = el.querySelector('.base-card__full-link') || el.querySelector('a');
-
-                if (tituloElement && linkElement) {
-                    const titulo = tituloElement.innerText.trim();
-                    const link = linkElement.getAttribute('href');
-
-                    if (titulo && link) {
-                        lista.push({
-                            titulo: titulo,
-                            empresa: empresaElement ? empresaElement.innerText.trim() : 'Não informada',
-                            localizacao: localElement ? localElement.innerText.trim() : 'Brasil',
-                            link: link.split('?')[0], // Limpa parâmetros extras do link
-                            descricao: 'Vaga coletada via painel público do LinkedIn.',
-                            salario: 'A combinar',
-                            plataforma: 'LinkedIn'
-                        });
-                    }
-                }
-            });
-
-            return lista;
-        });
-
-        console.log(`✅ Coletadas ${vagas.length} vagas do LinkedIn.`);
-        await browser.close();
-        return vagas;
-
-    } catch (error) {
-        console.error("Erro ao raspar o LinkedIn:", error);
-        await browser.close();
-        return []; 
-    }
+  } catch (error) {
+    console.error("Erro ao raspar o LinkedIn:", error.message);
+    return [];
+  }
 }
 
 module.exports = { buscarVagas };

@@ -9,15 +9,24 @@ async function analisarCurriculo(req, res) {
         if (req.body.file) {
             console.log("📄 Recebido arquivo PDF em Base64 para análise.");
             // Remove o prefixo do dataURI se houver
-            const base64Data = req.body.file.replace(/^data:application\/pdf;base64,/, "");
+            const base64Data = req.body.file.replace(/^data:.*?;base64,/, "");
             const buffer = Buffer.from(base64Data, 'base64');
             
             try {
-                const pdfData = await pdfParse(buffer);
-                textoCurriculo = pdfData.text;
+                if (typeof pdfParse === 'function') {
+                    const pdfData = await pdfParse(buffer);
+                    textoCurriculo = pdfData.text || '';
+                } else if (pdfParse.PDFParse) {
+                    const parser = new pdfParse.PDFParse({ data: buffer });
+                    const pdfData = await parser.getText();
+                    textoCurriculo = pdfData.text || '';
+                    if (parser.destroy) await parser.destroy();
+                } else {
+                    throw new Error('Módulo pdf-parse não inicializado corretamente.');
+                }
                 console.log(`✅ PDF extraído com sucesso! Caracteres extraídos: ${textoCurriculo.length}`);
             } catch (pdfError) {
-                console.error("Erro ao analisar PDF:", pdfError);
+                console.error("Erro ao analisar PDF:", pdfError.message || pdfError);
                 return res.status(400).json({ error: "Falha ao extrair texto do PDF enviado." });
             }
         } else if (req.body.text) {
@@ -73,7 +82,8 @@ ${textoCurriculo}`;
         const textResponse = response.response.text();
         console.log("📝 Resposta bruta do Gemini recebida.");
         
-        const jsonResult = JSON.parse(textResponse);
+        const cleanedText = textResponse.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+        const jsonResult = JSON.parse(cleanedText);
         
         return res.json({
             skills: jsonResult.skills || [],
